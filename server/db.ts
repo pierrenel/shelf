@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import { platformTag } from './heuristic.js';
 import { mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { normalizeTag, normalizeUrl, searchQuery, ulid } from './normalize.js';
@@ -57,6 +58,7 @@ export class Store {
             this.db.prepare('INSERT INTO items(id,url,canonical_url,domain,note,source,created_at) VALUES (?,?,?,?,?,?,?)').run(id, input.url.trim(), canonical, new URL(canonical).hostname, input.note || null, input.source || 'web', new Date().toISOString());
             this.db.prepare('INSERT INTO url_aliases VALUES (?,?)').run(canonical, id);
             this.tag(id, input.tags || []);
+            if (platformTag(new URL(canonical).hostname) === 'youtube') this.tag(id, ['youtube'], 'auto');
             return { item: this.item(id)!, duplicate: false };
         })();
     }

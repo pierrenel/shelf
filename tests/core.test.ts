@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import Database from 'better-sqlite3';
+import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { normalizeUrl, normalizeTag, searchQuery, ulid } from '../server/normalize.js';
@@ -146,4 +147,29 @@ test('YouTube links accept supported video URLs and reject spoofed hosts and IDs
     assert.deepEqual(youtubeVideo(`https://youtu.be/${id}?t=1h2m3s`), { id, start: 3723 });
     assert.deepEqual(youtubeVideo(`https://www.youtube.com/watch?v=${id}&start=42`), { id, start: 42 });
     for (const url of [`https://youtube.com.evil.test/watch?v=${id}`, `https://evil.test/youtube.com/watch?v=${id}`, 'https://youtube.com/playlist?list=abc', 'https://youtube.com/watch?v=bad', `javascript:alert(1)`, `https://user@youtube.com/watch?v=${id}`]) assert.equal(youtubeVideo(url), null);
+});
+
+
+test('article migration preserves an existing bookmark and its search index', () => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'shelf-migrate-'));
+    const old = new Database(path.join(directory, 'shelf.db'));
+    old.exec(readFileSync('migrations/001_initial.sql', 'utf8'));
+    old.exec("CREATE TABLE migrations (name TEXT PRIMARY KEY); INSERT INTO migrations VALUES ('001_initial.sql');");
+    old.prepare('INSERT INTO items (id,url,canonical_url,domain,title,note,created_at) VALUES (?,?,?,?,?,?,?)').run('existing', 'https://example.com', 'https://example.com', 'example.com', 'Precious bookmark', 'Keep this note', '2026-01-01');
+    old.prepare('INSERT INTO items (id,url,canonical_url,domain,created_at) VALUES (?,?,?,?,?)').run('old-video', 'https://youtube.com/watch?v=abcdefghijk', 'https://youtube.com/watch?v=abcdefghijk', 'youtube.com', '2026-01-01');
+    old.close();
+    const store = new Store(openDatabase(directory));
+    try {
+        assert.equal(store.item('existing')?.note, 'Keep this note');
+        assert.equal(store.item('existing')?.article, null);
+        assert.equal(store.item('existing')?.is_read, false);
+        assert.equal(store.list({ q: 'Precious' }).total, 1);
+        const video = store.save({ url: 'https://youtu.be/dQw4w9WgXcQ' }).item;
+        assert.ok(video.tags.includes('youtube'));
+        assert.equal(video.status, 'queued');
+        assert.equal(store.list({ tag: 'youtube' }).total, 2);
+        assert.ok(store.item('old-video')?.tags.includes('youtube'));
+        assert.equal(store.list({ q: 'youtube' }).total, 2);
+        assert.ok(store.save({ url: video.url }).item.tags.includes('youtube'));
+    } finally { store.db.close(); rmSync(directory, { recursive: true, force: true }); }
 });

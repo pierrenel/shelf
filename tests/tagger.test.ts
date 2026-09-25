@@ -14,6 +14,9 @@ test('platform tags match known hosts including www and subdomains', () => {
     assert.equal(platformTag('www.dribbble.com'), 'dribbble');
     assert.equal(platformTag('foo.webflow.io'), 'webflow');
     assert.equal(platformTag('example.com'), undefined);
+    for (const host of ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be', 'www.youtube-nocookie.com']) assert.equal(platformTag(host), 'youtube');
+    assert.equal(platformTag('youtube.com.evil.test'), undefined);
+    assert.equal(platformTag('notyoutube.com'), undefined);
 });
 test('heuristic tags merge tech, platform and mood without duplicates', () => {
     const tags = heuristicTags({ domain: 'www.github.com', tech: ['gsap', 'webgl'], palette: ['#111111', '#222222', '#000000'] });

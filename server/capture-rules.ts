@@ -1,6 +1,7 @@
 export const blockedHosts = ['cookielaw.org', 'onetrust.com', 'cookiebot.com', 'intercom.io', 'intercomcdn.com', 'drift.com', 'driftt.com', 'hs-scripts.com', 'hubspotmessages.com'];
 export const consentSelectors = '#onetrust-banner-sdk, #CybotCookiebotDialog, .cc-window, #cookie-law-info-bar, [id="cookie-banner"], [class="cookie-banner"], #intercom-container';
 export const platforms: [string, string][] = [
+    ['youtube.com', 'youtube'], ['youtu.be', 'youtube'], ['youtube-nocookie.com', 'youtube'],
     ['github.com', 'github'], ['dribbble.com', 'dribbble'], ['codepen.io', 'codepen'], ['awwwards.com', 'awwwards'],
     ['behance.net', 'behance'], ['figma.com', 'figma'], ['notion.so', 'notion'], ['notion.site', 'notion'],
     ['medium.com', 'medium'], ['substack.com', 'substack'], ['producthunt.com', 'producthunt'], ['cargo.site', 'cargo'],

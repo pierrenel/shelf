@@ -80,12 +80,14 @@ try {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     assert.equal(await page.locator('.reader-panel').evaluate(el => el.scrollWidth <= el.clientWidth), true);
     await page.setViewportSize({ width: 320, height: 700 });
+    await page.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     short = true;
-    const probe = await browser.newPage();
+    const probeContext = await browser.newContext();
+    const probe = await probeContext.newPage();
     await probe.goto(url);
     assert.equal(await extractArticle(probe), null, 'non-article falls back to screenshots');
-    await probe.close();
+    await probeContext.close();
     await fetch(`${origin}/api/items/${item.id}/recapture`, { method: 'POST' });
     await waitCapture();
     assert.deepEqual(store.item(item.id)?.article, captured.article, 'unsuccessful extraction preserves saved article');

@@ -54,7 +54,7 @@ docker compose up -d --build
 
 ## Watch YouTube links
 
-Save a YouTube video URL as usual. Standard watch links, `youtu.be` links, Shorts, live-video links and embed links open in **Watch**, even if screenshot capture fails. Shared start times are preserved. Press **Play video** to load the player; Shelf uses YouTube's privacy-enhanced embed domain and does not load the player before that click.
+Save a YouTube video URL as usual. YouTube links automatically receive a `youtube` tag as soon as they are saved; existing YouTube bookmarks receive it during the next startup migration. Standard watch links, `youtu.be` links, Shorts, live-video links and embed links open in **Watch**, even if screenshot capture fails. Shared start times are preserved. Press **Play video** to load the player; Shelf uses YouTube's privacy-enhanced embed domain and does not load the player before that click.
 
 Playback needs an internet connection and remains subject to YouTube's availability and embedding restrictions. **Watch on YouTube** opens the original when embedded playback is unavailable. Shelf does not download videos, save transcripts or track playback position. Channel pages and playlist-only links remain ordinary bookmarks.
 
