@@ -1,5 +1,6 @@
 import { chromium, type Browser, type BrowserContext } from 'playwright';
 import sharp from 'sharp';
+import { youtubeVideo } from '../shared/youtube.js';
 import { extractArticle } from './article.js';
 import path from 'node:path';
 import { mkdir, readFile, rm } from 'node:fs/promises';
@@ -138,7 +139,7 @@ export class Worker {
             }, detectors);
             if (/^(just a moment|attention required|access denied|verify you are human)/i.test(metadata.title || ''))
                 throw new Error('This site blocked automated capture. Your URL is saved; you can retry later.');
-            const article = await extractArticle(page).catch(error => {
+            const article = youtubeVideo(item.url) ? null : await extractArticle(page).catch(error => {
                 console.warn(JSON.stringify({ event: 'article', id, error: String(error) }));
                 return null;
             });

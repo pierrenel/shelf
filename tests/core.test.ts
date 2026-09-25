@@ -135,3 +135,15 @@ test('reading state validates, survives recapture and search indexes the complet
         rmSync(directory, { recursive: true, force: true });
     }
 });
+
+
+test('YouTube links accept supported video URLs and reject spoofed hosts and IDs', async () => {
+    const { youtubeVideo } = await import('../shared/youtube.js');
+    const id = 'dQw4w9WgXcQ';
+    for (const url of [`https://www.youtube.com/watch?v=${id}`, `https://youtu.be/${id}`, `https://m.youtube.com/shorts/${id}`, `https://www.youtube.com/live/${id}`, `https://www.youtube-nocookie.com/embed/${id}`]) {
+        assert.deepEqual(youtubeVideo(url), { id, start: 0 });
+    }
+    assert.deepEqual(youtubeVideo(`https://youtu.be/${id}?t=1h2m3s`), { id, start: 3723 });
+    assert.deepEqual(youtubeVideo(`https://www.youtube.com/watch?v=${id}&start=42`), { id, start: 42 });
+    for (const url of [`https://youtube.com.evil.test/watch?v=${id}`, `https://evil.test/youtube.com/watch?v=${id}`, 'https://youtube.com/playlist?list=abc', 'https://youtube.com/watch?v=bad', `javascript:alert(1)`, `https://user@youtube.com/watch?v=${id}`]) assert.equal(youtubeVideo(url), null);
+});

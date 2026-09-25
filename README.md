@@ -1,6 +1,6 @@
 # Shelf
 
-A small, self-hosted place for links worth keeping. Save a URL, get a screenshot, add a reminder, and find it again through your collection or search.
+A small, self-hosted place for links worth keeping. Save a URL, keep a screenshot and a readable article, add a reminder, and find it again through your collection or search. YouTube links open in an embedded player.
 
 ![Shelf’s dark-themed gallery showing five example bookmarks with screenshot previews and search controls](docs/gallery.png)
 
@@ -37,6 +37,26 @@ There is deliberately no login. Keep Shelf on your LAN/tailnet and do not expose
 - Bookmarklet, Shortcut instructions, and an API suitable for Hermes.
 
 Semantic search, richer covers, rediscovery and Raindrop import/sync are **not implemented yet**. Raindrop environment variables are reserved. Palette extraction is a simple quantiser.
+
+## Read it later
+
+Save an article using the same URL box, bookmarklet, or API. Shelf automatically extracts a reading copy with [Mozilla Readability](https://github.com/mozilla/readability), alongside the screenshots. Articles open in **Read**; **Full page** and **First screen** keep the original visual reference available.
+
+The reader keeps headings, paragraphs, lists, quotes, links, tables and code, with comfortable typography in both themes. It shows an estimated reading time and lets you **Mark as read** or **Mark unread**. Your reading position saves automatically to Shelf, with a browser-local fallback when a save fails. Search covers the complete extracted article, including text beyond the old 5,000-character preview.
+
+Reading copies live in your SQLite database and remain available if the original page disappears, as long as you can reach your Shelf server. This is not a browser-offline mode. Images, scripts, embedded media and the site's styling are omitted. Extraction is best-effort: paywalls, login-only content, bot protection and unusual layouts can prevent a useful copy. Very large pages (over 5 million HTML characters, 50,000 elements, or 2 million extracted text characters) are skipped. If extraction finds no article, screenshots remain available. A failed extraction during recapture keeps any previous reading copy.
+
+**Existing bookmarks:** open one and choose **Recapture** to add its reading copy. New database columns are migrated automatically on startup; existing bookmarks are not recaptured in bulk. To update a Docker installation:
+
+```sh
+docker compose up -d --build
+```
+
+## Watch YouTube links
+
+Save a YouTube video URL as usual. Standard watch links, `youtu.be` links, Shorts, live-video links and embed links open in **Watch**, even if screenshot capture fails. Shared start times are preserved. Press **Play video** to load the player; Shelf uses YouTube's privacy-enhanced embed domain and does not load the player before that click.
+
+Playback needs an internet connection and remains subject to YouTube's availability and embedding restrictions. **Watch on YouTube** opens the original when embedded playback is unavailable. Shelf does not download videos, save transcripts or track playback position. Channel pages and playlist-only links remain ordinary bookmarks.
 
 ## Saving from a browser
 
@@ -155,9 +175,12 @@ The Docker image includes the tools needed to run the isolated capture and UI sm
 docker compose build
 docker compose run --rm --no-deps shelf node --test dist/tests/core.test.js
 docker compose run --rm --no-deps -e REVIEW_DIR=/tmp/shelf-review shelf npm run test:smoke
+docker compose run --rm --no-deps -e REVIEW_DIR=/tmp/shelf-review shelf node dist/tests/reader.js
 ```
 
 The smoke test uses a temporary database and five **synthetic** local fixtures: static blog, scroll-reveal portfolio, storefront, long docs page and consent overlay. It checks real screenshot dimensions, clipping, live updates, notes, search, mobile overflow, bookmarklet dedupe and immutable recapture. It never inserts fixtures into your personal collection. Screenshots in its output directory are test evidence, not preloaded bookmarks.
+
+The reader browser test covers long-article extraction, safe formatting, full-text search, read status, position restoration, responsive themes, screenshot fallback, YouTube embed activation and the favicon. It uses local fixtures and a mocked YouTube player; it does not assert that a particular public video is playable.
 
 Model-response parser and heuristic-tag tests run with `npm test`. Set `TAGGER_PROVIDER=none` to keep captures on heuristic tags only.
 
