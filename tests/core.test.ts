@@ -102,3 +102,36 @@ test('durable intake, dedupe, FTS tag/note triggers, pagination, API validation 
         rmSync(directory, { recursive: true, force: true });
     }
 });
+
+test('reading state validates, survives recapture and search indexes the complete article', async () => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'shelf-reading-'));
+    const store = new Store(openDatabase(directory));
+    const { app } = createApp(store, directory);
+    try {
+        const { item } = store.save({ url: 'https://example.com/long-article' });
+        const text = 'Opening paragraph. '.repeat(400) + ' Rareendword';
+        const article = { title: 'An article', byline: null, content: [{ tag: 'p', children: [text] }], text, minutes: 7, dir: 'ltr' };
+        store.update(item.id, { status: 'done', article_json: JSON.stringify(article), reading_minutes: 7, page_text: text });
+        assert.equal(store.list({ q: 'Rareendword' }).total, 1);
+        assert.equal(store.list({}).items[0].article, undefined, 'gallery omits the article body');
+        assert.equal(store.list({}).items[0].page_text, null);
+        const patched = await app.inject({ method: 'PATCH', url: `/api/items/${item.id}`, payload: { reading_progress: 0.42, is_read: true } });
+        assert.equal(patched.statusCode, 200);
+        assert.equal(patched.json().reading_progress, 0.42);
+        assert.equal(patched.json().is_read, true);
+        assert.deepEqual(patched.json().article, article);
+        for (const reading_progress of [-1, 1.1, 'bad']) {
+            assert.equal((await app.inject({ method: 'PATCH', url: `/api/items/${item.id}`, payload: { reading_progress } })).statusCode, 400);
+        }
+        await app.inject({ method: 'POST', url: `/api/items/${item.id}/recapture` });
+        assert.equal(store.item(item.id)?.reading_progress, 0.42);
+        assert.deepEqual(store.item(item.id)?.article, article);
+        assert.equal(store.list({ q: 'Rareendword' }).total, 1);
+        await app.inject({ method: 'DELETE', url: `/api/items/${item.id}` });
+        assert.equal(store.list({ q: 'Rareendword' }).total, 0);
+    } finally {
+        await app.close();
+        store.db.close();
+        rmSync(directory, { recursive: true, force: true });
+    }
+});

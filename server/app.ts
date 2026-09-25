@@ -85,19 +85,21 @@ export function createApp(store: Store, data: string, browserReady: () => boolea
             note?: string;
             favourite?: boolean;
             archived?: boolean;
+            is_read?: boolean;
+            reading_progress?: number;
             add_tags?: string[];
             remove_tags?: string[];
         };
     }>('/api/items/:id', {
-        schema: { body: { type: 'object', additionalProperties: false, properties: { note: { type: 'string', maxLength: 10000 }, favourite: { type: 'boolean' }, archived: { type: 'boolean' },
+        schema: { body: { type: 'object', additionalProperties: false, properties: { is_read: { type: 'boolean' }, reading_progress: { type: 'number', minimum: 0, maximum: 1 }, note: { type: 'string', maxLength: 10000 }, favourite: { type: 'boolean' }, archived: { type: 'boolean' },
                     add_tags: { type: 'array', maxItems: 50, items: { type: 'string', maxLength: 100 } }, remove_tags: { type: 'array', maxItems: 50, items: { type: 'string', maxLength: 100 } } } } },
     }, async (request, reply) => {
         const { id } = request.params;
         if (!store.item(id))
             return reply.code(404).send({ error: 'Bookmark not found.' });
         store.db.transaction(() => {
-            const { note, favourite, archived, add_tags, remove_tags } = request.body;
-            store.update(id, { ...(note !== undefined ? { note } : {}), ...(favourite !== undefined ? { favourite: Number(favourite) } : {}), ...(archived !== undefined ? { archived: Number(archived) } : {}) });
+            const { note, favourite, archived, is_read, reading_progress, add_tags, remove_tags } = request.body;
+            store.update(id, { ...(is_read !== undefined ? { is_read: Number(is_read) } : {}), ...(reading_progress !== undefined ? { reading_progress } : {}), ...(note !== undefined ? { note } : {}), ...(favourite !== undefined ? { favourite: Number(favourite) } : {}), ...(archived !== undefined ? { archived: Number(archived) } : {}) });
             store.tag(id, add_tags || []);
             for (const name of remove_tags || [])
                 store.db.prepare('DELETE FROM item_tags WHERE item_id=? AND tag_id=(SELECT id FROM tags WHERE name=?)').run(id, normalizeTag(name));

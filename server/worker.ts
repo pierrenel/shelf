@@ -1,5 +1,6 @@
 import { chromium, type Browser, type BrowserContext } from 'playwright';
 import sharp from 'sharp';
+import { extractArticle } from './article.js';
 import path from 'node:path';
 import { mkdir, readFile, rm } from 'node:fs/promises';
 import { blockedHosts, consentSelectors, detectors } from './capture-rules.js';
@@ -137,6 +138,10 @@ export class Worker {
             }, detectors);
             if (/^(just a moment|attention required|access denied|verify you are human)/i.test(metadata.title || ''))
                 throw new Error('This site blocked automated capture. Your URL is saved; you can retry later.');
+            const article = await extractArticle(page).catch(error => {
+                console.warn(JSON.stringify({ event: 'article', id, error: String(error) }));
+                return null;
+            });
             await mkdir(folder, { recursive: true });
             const save = async (name: string, buffer: Buffer) => {
                 const filename = `${name}-${captureId}.${name === 'favicon' ? 'png' : 'webp'}`;
@@ -171,7 +176,9 @@ export class Worker {
             }
             const { favicon: _favicon, canonical, tech, ...fields } = metadata;
             this.store.db.transaction(() => {
-                this.store.update(id, { ...fields, tech: JSON.stringify(tech), palette: JSON.stringify(palette), favicon_path: faviconPath,
+                this.store.update(id, { ...fields,
+                    ...(article ? { article_json: JSON.stringify(article), reading_minutes: article.minutes, page_text: article.text } : item.article ? { page_text: item.article.text } : {}),
+                    tech: JSON.stringify(tech), palette: JSON.stringify(palette), favicon_path: faviconPath,
                     full_path: fullPath, full_w: 1440, full_h: fullHeight, viewport_path: viewportPath, thumb_path: thumbPath, thumb_w: 600, thumb_h: 375,
                     captured_at: new Date().toISOString(), status: 'done', error: null, clipped: Number(height > fullHeight), capture_repair: Number(this.repair), tagging_status: this.tagger ? 'pending' : 'done', tagging_error: null });
                 this.store.db.prepare("DELETE FROM item_tags WHERE item_id=? AND origin='auto'").run(id);

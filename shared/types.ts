@@ -1,3 +1,12 @@
+export type ArticleNode = string | { tag: string; children: ArticleNode[]; href?: string };
+export interface Article {
+    title: string;
+    byline: string | null;
+    content: ArticleNode[];
+    text: string;
+    minutes: number;
+    dir: 'ltr' | 'rtl';
+}
 export interface Item {
     id: string;
     url: string;
@@ -19,6 +28,10 @@ export interface Item {
     full_h: number | null;
     viewport_path: string | null;
     page_text: string | null;
+    article?: Article | null;
+    reading_minutes: number | null;
+    reading_progress: number;
+    is_read: boolean;
     note: string | null;
     favourite: boolean;
     archived: boolean;

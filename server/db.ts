@@ -21,14 +21,17 @@ export function openDatabase(directory: string) {
 }
 export class Store {
     constructor(public db: Database.Database) { }
-    item(id: string): Item | undefined {
+    item(id: string, includeArticle = true): Item | undefined {
         const row = this.db.prepare('SELECT * FROM items WHERE id=?').get(id) as Record<string, unknown> | undefined;
         if (!row)
             return;
         const tags = this.db.prepare('SELECT DISTINCT name FROM tags JOIN item_tags ON tags.id=item_tags.tag_id WHERE item_id=? ORDER BY name').all(id) as {
             name: string;
         }[];
-        return { ...row, favourite: !!row.favourite, archived: !!row.archived, clipped: !!row.clipped, capture_repair: !!row.capture_repair,
+        const article = includeArticle && row.article_json ? JSON.parse(row.article_json as string) : null;
+        delete row.article_json;
+        if (!includeArticle) row.page_text = null;
+        return { ...row, ...(includeArticle ? { article } : {}), is_read: !!row.is_read, favourite: !!row.favourite, archived: !!row.archived, clipped: !!row.clipped, capture_repair: !!row.capture_repair,
             palette: JSON.parse(row.palette as string), tech: JSON.parse(row.tech as string), tags: tags.map(t => t.name) } as unknown as Item;
     }
     tag(id: string, names: string[], origin = 'manual') {
@@ -58,7 +61,7 @@ export class Store {
         })();
     }
     update(id: string, fields: Record<string, unknown>) {
-        const allowed = new Set(['title', 'description', 'site_name', 'favicon_path', 'og_image_url', 'status', 'error', 'attempts', 'next_attempt_at', 'thumb_path', 'thumb_w', 'thumb_h', 'full_path', 'full_w', 'full_h', 'viewport_path', 'palette', 'tech', 'page_text', 'note', 'favourite', 'archived', 'captured_at', 'clipped', 'capture_repair', 'summary', 'tagging_status', 'tagging_error']);
+        const allowed = new Set(['title', 'description', 'site_name', 'favicon_path', 'og_image_url', 'status', 'error', 'attempts', 'next_attempt_at', 'thumb_path', 'thumb_w', 'thumb_h', 'full_path', 'full_w', 'full_h', 'viewport_path', 'palette', 'tech', 'page_text', 'note', 'favourite', 'archived', 'captured_at', 'clipped', 'capture_repair', 'summary', 'tagging_status', 'tagging_error', 'article_json', 'reading_minutes', 'reading_progress', 'is_read']);
         const entries = Object.entries(fields).filter(([key]) => allowed.has(key));
         if (entries.length)
             this.db.prepare(`UPDATE items SET ${entries.map(([key]) => `${key}=?`).join(',')} WHERE id=?`).run(...entries.map(([, value]) => value), id);
@@ -106,7 +109,7 @@ export class Store {
             id: string;
         }[];
         const more = rows.length > limit;
-        const items = rows.slice(0, limit).map(row => this.item(row.id)!);
+        const items = rows.slice(0, limit).map(row => this.item(row.id, false)!);
         const last = items.at(-1);
         return { items, total, next_cursor: more && last ? Buffer.from(JSON.stringify([last.created_at, last.id])).toString('base64url') : null };
     }
