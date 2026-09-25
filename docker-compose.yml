@@ -1,0 +1,21 @@
+services:
+  shelf:
+    build: .
+    container_name: shelf
+    user: "${SHELF_UID:-1000}:${SHELF_GID:-1000}"
+    restart: unless-stopped
+    ports:
+      - "3080:3000"
+    volumes:
+      - ./data:/data
+    env_file:
+      - path: .env
+        required: false
+    shm_size: 1gb
+    init: true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3

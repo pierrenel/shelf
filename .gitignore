@@ -1,0 +1,43 @@
+# Dependencies and generated builds
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Private runtime data and backups
+/data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3-shm
+*.sqlite3-wal
+shelf-backup*.tar.gz
+
+# Local environment secrets; keep the documented template
+.env
+.env.*
+!.env.example
+
+# Local agent/tool state and review artifacts
+.codegraph/
+.agents/
+.codex/
+.impeccable/
+
+# Test reports and logs
+test-results/
+playwright-report/
+coverage/
+*.log
+
+# Editor and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
